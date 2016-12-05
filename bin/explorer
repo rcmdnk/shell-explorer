@@ -1,0 +1,448 @@
+#!/usr/bin/env bash
+
+## Description {{{
+#
+# File explorer made with shell script.
+#
+EXPLORER_VERSION=v0.0.1
+EXPLORER_DATE="06/Dec/2016"
+#
+# }}}
+
+#The MIT License (MIT) {{{
+#
+#Copyright (c) 2016 rcmdnk
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+# }}}
+
+# source sentaku {{{
+if type sentaku >& /dev/null;then
+  . sentaku -n
+else
+echo "Install sentaku (https://github.com/rcmdnk/sentaku) first."
+  exit 1
+fi
+# }}}
+
+# Default variables {{{
+_SENTAKU_SEPARATOR=$'\n'
+_SENTAKU_SHOWLAST=1
+_SENTAKU_FILE_CONTENT_LINES=${_SENTAKU_FILE_CONTENT_LINES:-10}
+_SENTAKU_CONTENT_SHOW=${_SENTAKU_CONTENT_SHOW_UNDER:-0}
+_SENTAKU_EDITOR="$EDITOR"
+_SENTAKU_VISUALAPP="$VISUAL"
+_SENTAKU_CONFIRM=1
+_SENTAKU_START_DIR="."
+# }}}
+
+_sf_initialize_user () { # {{{
+  _s_file_content_lines=${SENTAKU_FILE_CONTENT_LINES:-$_SENTAKU_FILE_CONTENT_LINES}
+  _s_content_show=${SENTAKU_CONTENT_SHOW:-$_SENTAKU_CONTENT_SHOW}
+  _s_editor="${SENTAKU_EDITOR:-$_SENTAKU_EDITOR}"
+  _s_editor="${_s_editor:-vi}"
+  _s_visualapp="${SENTAKU_VISUALAPP:-$_SENTAKU_VISUALAPP}"
+  _s_visualapp="${_s_visualapp:-less}"
+  _s_confirm="${SENTAKU_CONFIRM:-$_SENTAKU_CONFIRM}"
+  _s_start_dir="${SENTAKU_START_DIR:-$_SENTAKU_START_DIR}"
+  _s_a=0
+  _s_is_first=1
+
+  # New help
+  _s_help="
+Usage: ex_explorer.sh [directory] [-aruvCHN] [-f <file>] [-s <sep>]
+
+Arguments:
+   -a         Show hidden files/directories.
+   -r         Show file content in the right.
+   -u         Show file content under the list.
+   -C         No confirmation at deletion.
+   -H         Header is shown at sentaku window.
+   -N         No nubmers are shown.
+   -v         Print version.
+   -h         print this help and exit.
+"
+} # }}}
+
+_sf_finalize_user () { # {{{
+  unset _s_file_content_lines
+  unset _s_content_show
+  unset _s_editor
+  unset _s_visualapp
+  unset _s_confirm
+  unset _s_start_dir
+  unset _s_a
+  unset _s_is_first
+} # }}}
+
+_sf_get_values () { # {{{
+  if [ $_s_is_first -eq 1 ] && [ $_s_stdin -eq 1 ];then
+    _s_inputs=($(cat -))
+    _s_is_first=0
+  else
+    local orig_ifs=$IFS
+    IFS="$_s_s"
+    if [ $_s_a -eq 1 ];then
+      _s_inputs=($(ls -a))
+    else
+      _s_inputs=(".." $(ls))
+    fi
+    IFS=$orig_ifs
+  fi
+  _s_n=${#_s_inputs[@]}
+} # }}}
+
+_sf_printline () { # useage: _sf_printline is_selected n_line n_input {{{
+  local is_selected=$1
+  local n_line=$2
+  local n_input=$3
+
+  local color=""
+
+  if [ -d "${_s_inputs[$n_input]}" ];then
+    color="[33;1m"
+  fi
+  if [ "${_s_v_selected[$n_input]}" -eq 1 ];then
+    color="${color}[36m"
+  fi
+  if [ "$is_selected" -eq 1 ];then
+    if [ "$_s_line_highlight" -eq 1 ];then
+      color="${color}[7m"
+    else
+      color="${color}[4m"
+    fi
+  fi
+
+  # Change line breaks to \n (to be shown), remove the last line break, replace tab to space
+  _s_show="$(echo "${_s_inputs[$n_input]}"|awk -F"\n" -v ORS="\\\\\\\\n" '{print}' |sed 's|\\\\n$||'|sed "s/\[m/[m$color/g"|sed $'s/\t/ /g')"
+
+  tput cup "$n_line" 0 >/dev/tty
+  local n_show=$_s_cols
+  local num=""
+  if [ $_s_nonumber -eq 0 ];then
+    local nmax=$((_s_n-1))
+    local num_width=${#nmax}
+    n_show=$((_s_cols-num_width-2))
+    num=$(printf "%${num_width}d: " "$n_input")
+  fi
+  _sf_show "$is_selected" "$n_show"
+  if [ "$_s_col_n_only" -eq 1 ];then
+    printf "%s%s[m%s" "${color}" "${num}" "${_s_show}" >/dev/tty
+  else
+    printf "%s%s%s[m" "${color}" "${num}" "${_s_show}" >/dev/tty
+  fi
+  tput cup "$n_line" 0 >/dev/tty
+} # }}}
+
+_sf_print_current_line () { # print current line {{{
+  _sf_printline 1 $((_s_current_n-_s_n_offset+_s_ext_row)) $_s_current_n
+  _sf_file_content
+} # }}}
+
+_sf_check_args () { # {{{
+  # Get arguments
+  _s_continue=0
+  if [ "$1" != "" ] && [ "$(echo $1 |cut -c 1)" != "-" ];then
+    _s_start_dir="$1"
+    shift
+    if [ ! -d "$_s_start_dir" ];then
+      _sf_echo "$_s_start_dir is not a directory."
+      return
+    fi
+    cd "${_s_start_dir}"
+  fi
+  while [ $# -gt 0 ];do
+    case $1 in
+      "-a" ) _s_a=1;shift;;
+      "-r" ) _s_content_show=1;shift;;
+      "-u" ) _s_content_show=2;shift;;
+      "-C" ) _s_confirm=0;shift;;
+      "-H" ) _s_noheader=1;shift;;
+      "-N" ) _s_nonumber=1;shift;;
+      "-v" )
+        _sf_echo "$(basename "$0") $EXPLORER_VERSION $EXPLORER_DATE"
+        return 0
+        ;;
+      "-h" )
+        _sf_echo "$_s_help"
+        return 0
+        ;;
+      * )
+        _sf_echo "$_s_help"
+        return 1
+        ;;
+    esac
+  done
+  _s_continue=1
+  return 0
+} # }}}
+
+_sf_finalize_user () { # {{{
+  unset _s_a
+} # }}}
+
+_sf_file_content () { # {{{
+  if [ "$_s_content_show" -eq 0 ] || [ "$_s_file_content" -eq 0 ];then
+    return
+  fi
+  local i
+  local start_line=$((_s_lines+1))
+  local end_line=$(($(tput lines)-1))
+  local start_col=0
+  local n_cols=$_s_cols
+
+  if [ $_s_content_show -eq 1 ];then
+    start_line=0
+    start_col=$_s_cols
+    n_cols=$_s_content_cols
+  fi
+
+  for i in $(seq $start_line $end_line);do
+    tput cup "$i" "$start_col" >/dev/tty
+    printf "%-${n_cols}s" "" >/dev/tty
+  done
+
+  if [ $_s_content_show -eq 2 ];then
+    tput cup "$_s_lines" 0 >/dev/tty
+    if [ $n_cols -ge 20 ];then
+      printf "====File content===="
+    else
+      printf "=="
+    fi
+  fi
+
+  file_type=$(file "${_s_inputs[$_s_current_n]}"|cut -d":" -f2-)
+  if ! echo "$file_type"|grep -q text || echo "$file_type"|grep -q "very long lines";then
+    if [ $_s_content_show -eq 1 ];then
+      file_type="|${file_type}"
+    fi
+    if [ $_s_content_show -eq 1 ];then
+      start_line=$((_s_current_n-_s_n_offset+_s_ext_row))
+    fi
+    tput cup "$start_line" "$start_col" >/dev/tty
+    printf "$(_sf_cut_word "$file_type" "$n_cols")"
+  else
+    i=$start_line
+    while read line;do
+      if [ $_s_content_show -eq 1 ];then
+        line="|$line"
+      fi
+      if [ "${#line}" -gt "$n_cols" ];then
+        if [ "x$ZSH_VERSION" != "x" ];then
+          line="${line[0,$((n_cols-1))]}"
+        else
+          line="${line: 0: $n_cols}"
+        fi
+      fi
+      tput cup "$i" $start_col >/dev/tty
+      printf "%s" "$line"
+      ((i++))
+      if [ $i -gt $end_line ];then
+        break
+      fi
+    done < ${_s_inputs[$_s_current_n]}
+    if [ $_s_content_show -eq 1 ];then
+      while [ $i -lt $end_line ];do
+        tput cup "$i" $start_col >/dev/tty
+        printf "|"
+        ((i++))
+      done
+    fi
+  fi
+} # }}}
+
+_sf_set_header () { # {{{
+  _s_header="\e[43;30m$(_sf_cut_word $(pwd) $((_s_cols-1)) 1)\e[0m "
+  if [ "$_s_noheader" = 1 ];then
+    return
+  fi
+  if [ $_s_keymode -eq 0 ];then
+    if [ "$_s_cols" -ge 64 ];then
+      _s_header="$_s_header
+  vimike updown, e.g)j:down, k:up, gg/G,
+  s(show detail), d(delete), l(show content), e(edit the file)
+  Enter(show content/move to), q(quit)"
+    fi
+  else
+    if [ "$_s_cols" -ge 41 ];then
+      _s_header="$_s_header
+  vim-like updown, e.g)j:down, k:up, gg/G
+  s(show detail), d(delete),
+  l(show content), e(edit the file)
+  Enter(show content/move to), q(quit)"
+    fi
+  fi
+} # }}}
+
+_sf_setview () { # {{{
+  if [ $_s_content_show -eq 1 ];then
+    _s_file_content=1
+    local full_cols=$_s_cols
+    _s_cols=$((full_cols/2))
+    _s_content_cols=$((full_cols-_s_cols))
+  fi
+
+  if [ "$_s_lines" -le "$((_s_min_show))" ];then
+    _s_header=""
+    _s_ext_row=0
+  elif [ "$_s_lines" -eq "$((_s_min_show+1))" ];then
+    _s_header="${_s_search}"
+    _s_ext_row=1
+  else
+    _sf_set_header
+    _s_header="$(printf "%b\n\n" "$_s_header"|\
+                 sed -e :loop -e 'N; $!b loop'  -e 's/[[:space:]\n]*$//')\
+               \n${_s_search}"
+    if [ "$(printf "%b\n" "$_s_header"|wc -l)" -gt "$((_s_lines-_s_min_show))" ];then
+      _s_header="\e[43;30m$(_sf_cut_word $(pwd) $_s_cols 1)\e[0m "
+    fi
+    _s_ext_row=$(printf "%b\n" "$_s_header"|wc -l)
+  fi
+
+  if [ $_s_content_show -eq 2 ];then
+    if [ $((_s_lines-_ext_row-_s_file_content_lines-1)) -ge 0 ];then
+      _s_lines=$((_s_lines-_s_file_content_lines-1))
+      _s_file_content=1
+    else
+      _s_file_content=0
+    fi
+  fi
+
+  _s_max_show=$_s_n
+  if [ "$_s_n" -gt $((_s_lines-_s_ext_row)) ];then
+    _s_max_show=$((_s_lines-_s_ext_row))
+  fi
+} # }}}
+
+_sf_run_on_list () { # {{{
+  local curdir="$(pwd)"
+  local full_list=()
+  local i
+  local only_file=1
+  if [ "$1" = "print" ] || [ "$1" = "show" ];then
+    only_file=0
+  fi
+  if [ $_s_visual -ne -1 ];then
+    for i in $(seq 0 $((_s_n-1)));do
+      if [ ${_s_v_selected[$i]} -eq 1 ];then
+        if [ $only_file -eq 0 ] || [ -f "${curdir}/${_s_inputs[$i]}" ];then
+          full_list=("${full_list[@]}" "${curdir}/${_s_inputs[$i]}")
+        fi
+      fi
+    done
+  else
+    if [ $only_file -eq 0 ] || [ -f "${curdir}/${_s_inputs[$_s_current_n]}" ];then
+      full_list=("${curdir}/${_s_inputs[$_s_current_n]}")
+    fi
+  fi
+  if [ "$1" = "print" ];then
+    is_first=1
+    for v in "${full_list[@]}";do
+      if [ $is_first -eq 1 ];then
+        printf "%s" "$v"
+        is_first=0
+      else
+        printf "$_s_s%s" "$v"
+      fi
+    done
+  elif [ "$1" = "show" ];then
+    _sf_echo "$(pwd)\n$(ls -dl "${full_list[@]}")"
+  else
+    if [ ${#full_list} -eq 0 ];then
+      _sf_echo "No directory is selected."
+      return
+    fi
+    clear >/dev/tty
+    local app=$_s_visualapp
+    if [ "$1" = "edit" ];then
+      app=$_s_editor
+    fi
+    $app "${full_list[@]}" >/dev/tty </dev/tty
+    _sf_hide
+    _s_is_print=1
+  fi
+} # }}}
+
+_sf_execute () { # {{{
+  _sf_run_on_list "print"
+} # }}}
+
+_sf_enter () { # {{{
+  if [ -d "${_s_inputs[$_s_current_n]}" ];then
+    cd "${_s_inputs[$_s_current_n]}"
+    _sf_get_values
+    _sf_reset
+  else
+    _sf_l
+  fi
+} # }}}
+
+_sf_c () { # {{{
+  if [ -d "${_s_inputs[$_s_current_n]}" ];then
+    cd "${_s_inputs[$_s_current_n]}"
+    _sf_get_values
+    _sf_reset
+  else
+    _sf_echo "${_s_inputs[$_s_current_n]} is not a directory."
+  fi
+} # }}}
+
+_sf_d () { # {{{
+  clear >/dev/tty
+  local yes=1
+  if [ $_s_confirm -eq 1 ];then
+    yes=0
+    while : ;do
+      echo "Delete ${_s_inputs[$_s_current_n]}?: (y/n)"
+      _sf_read
+      if [ "$_s_read" = "y" ];then
+        yes=1
+        break
+      elif [ "$_s_read" = "n" ];then
+        break
+      fi
+    done
+  fi
+  if [ $yes -eq 1 ];then
+    rm -rf ${_s_inputs[$_s_current_n]}
+  fi
+  _sf_get_values
+} # }}}
+
+_sf_e () { # {{{
+  _sf_run_on_list "edit"
+} # }}}
+
+_sf_l () { # {{{
+  _sf_run_on_list "view"
+} # }}}
+
+_sf_p () { # {{{
+  _sf_select
+} # }}}
+
+_sf_s () { # {{{
+  _sf_run_on_list "show"
+} # }}}
+
+if [ -p /dev/stdin ];then
+  echo $(cat -) | _sf_main "$@"
+else
+  _sf_main "$@"
+fi
