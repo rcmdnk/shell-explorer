@@ -4,7 +4,7 @@
 #
 # File explorer made with shell script.
 #
-EXPLORER_VERSION=v0.0.1
+EXPLORER_VERSION=v0.0.2
 EXPLORER_DATE="06/Dec/2016"
 #
 # }}}
