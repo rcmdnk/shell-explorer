@@ -7,7 +7,7 @@ File explorer with preview, made with shell script.
 
 On Mac, you can install scripts by [Homebrew](https://github.com/mxcl/homebrew):
 
-    $ brew tap rcmdnk/rcmdnkpac/shell-explorer
+    $ brew install rcmdnk/rcmdnkpac/shell-explorer
 
 You can also use an install script on the web like:
 
