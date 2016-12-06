@@ -1,5 +1,7 @@
 # shell-explorer
-File explorer made with shell script。
+File explorer with preview, made with shell script.
+
+![shell-explorer](https://github.com/rcmdnk/shell-explorer/blob/images/shell-explorer.gif?raw=true)
 
 ## Installation
 
@@ -43,9 +45,13 @@ Show the content of the file in the right:
 
     $ se -r
 
+![shell-explorer-right](https://github.com/rcmdnk/shell-explorer/blob/images/shell-explorer-right.gif?raw=true)
+
 Show the content of the file under the list:
 
     $ se -u
+
+![shell-explorer-under](https://github.com/rcmdnk/shell-explorer/blob/images/shell-explorer-under.gif?raw=true)
 
 Help:
 
@@ -62,10 +68,10 @@ Help:
 
 ### Usage during explorer
 
-* [sentaku](https://github.com/rcmdnk/sentaku) actions:
+* [sentaku](https://github.com/rcmdnk/sentaku) actions (vim like movement, emacs like movement):
 
 Key|Action
-:-:|:-
+:-:|:--
 n(any number)| Set number. Multi-digit can be used (13, 320, etc...). Used/reset by other key.
 k/j, C-p/C-n | Up/Down (if n is given, n-th up/n-th down).
 gg/G     | Go to top/bottom. (If n is given, move to n-th candidate.)
@@ -75,33 +81,16 @@ C-b/C-f  | Page up/Page down.
 M-v/C-v  | Page up/Page down.
 C-i/C-o  | Move the item up/down.
 q, C-x   | Quit.
-Space    | Select/unselect current line for multi-selection.
-         | At Emacs mode or search mode in Vim mode,
-         | it selects when space is pushed twice.
+Space    | Select/unselect current line for multi-selection. At Emacs mode or search mode in Vim mode, it selects when space is pushed twice.
 C-s      | Start/Stop Visual mode (multi-selection).
 v        | Visual mode.
-Esc      | At search mode, first Esc takes it back to normal mode
-         | with selected words.
-         | Second Esc clear search mode.
-         | Visual mode is cleared by first Esc.
+Esc      | At search mode, first Esc takes it back to normal mode with selected words. Second Esc clear search mode. Visual mode is cleared by first Esc.
 /        | Search.
-
-shell-explorer actions.
-
-Key|Action
-:-:|:-
-l| Show contents of selected files with `$VISUAL` (or `less`).
-e| Edit selected files with `$EDITOR` (or `vi`).
-s| Show details of selected items with `ls -l`.
-d| Delete selected items.
-p| Exit and print selected items' full paths.
-c| Change to a directory under the cursor. (No action for a file.)
-Enter|If an item under the cursor is a directory, move to it. Otherwise same as `l`.
 
 * shell-explorer actions:
 
 Key|Action
-:-:|:-
+:-:|:--
 l| Show contents of selected files with `$VISUAL` (or `less`).
 e| Edit selected files with `$EDITOR` (or `vi`).
 s| Show details of selected items with `ls -l`.
@@ -109,3 +98,14 @@ d| Delete selected items.
 p| Exit and print selected items' full paths.
 c| Change to a directory under the cursor. (No action for a file.)
 Enter|If an item under the cursor is a directory, move to it. Otherwise same as `l`.
+
+#### Environment Variables
+
+Name|Description|Default
+:--:|:-----------|:------:
+SENTAKU_CONTENT_SHOW|0: No preview, 1: Preview in the right (-r), 2: Preview under the list (-u)|1
+SENTAKU_FILE_CONTENT_LINES|Number of lines of contents to be shown. (Only for `-u` mode)|10
+SENTAKU_EDITOR|Editor to be used by `e`.|`$EDITOR` (or `vi` if `$EDITOR` is not set)
+SENTAKU_VISUALAPP|Viewer to be used by `l`|`$VISUAL` (or `less` if `$VISUAL` is not set)
+SENTAKU_CONFIRM|If 1, `se` will ask a confirmation at deletion.|1
+SENTAKU_START_DIR=|Starting directory in case of no files/directories inputs.|Current direcotry (`.`)

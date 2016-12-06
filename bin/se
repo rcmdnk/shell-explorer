@@ -2,7 +2,7 @@
 
 ## Description {{{
 #
-# File explorer made with shell script.
+# File explorer with preview, made with shell script.
 #
 EXPLORER_VERSION=v0.0.2
 EXPLORER_DATE="6/Dec/2016"
@@ -45,7 +45,7 @@ fi
 _SENTAKU_SEPARATOR=$'\n'
 _SENTAKU_SHOWLAST=1
 _SENTAKU_FILE_CONTENT_LINES=${_SENTAKU_FILE_CONTENT_LINES:-10}
-_SENTAKU_CONTENT_SHOW=${_SENTAKU_CONTENT_SHOW_UNDER:-0}
+_SENTAKU_CONTENT_SHOW=${_SENTAKU_CONTENT_SHOW:-0}
 _SENTAKU_EDITOR="$EDITOR"
 _SENTAKU_VISUALAPP="$VISUAL"
 _SENTAKU_CONFIRM=1
@@ -53,6 +53,7 @@ _SENTAKU_START_DIR="."
 # }}}
 
 _sf_initialize_user () { # {{{
+  _s_s="${_SENTAKU_SEPARATOR}"
   _s_file_content_lines=${SENTAKU_FILE_CONTENT_LINES:-$_SENTAKU_FILE_CONTENT_LINES}
   _s_content_show=${SENTAKU_CONTENT_SHOW:-$_SENTAKU_CONTENT_SHOW}
   _s_editor="${SENTAKU_EDITOR:-$_SENTAKU_EDITOR}"
@@ -66,12 +67,13 @@ _sf_initialize_user () { # {{{
 
   # New help
   _s_help="
-Usage: ex_explorer.sh [directory] [-aruvC]
+Usage: ex_explorer.sh [directory] [-arunvC]
 
 Arguments:
    -a         Show hidden files/directories.
    -r         Show file content in the right.
    -u         Show file content under the list.
+   -n         No preview.
    -C         No confirmation at deletion.
    -h         print this help and exit.
 "
@@ -169,6 +171,7 @@ _sf_check_args () { # {{{
       "-a" ) _s_a=1;shift;;
       "-r" ) _s_content_show=1;shift;;
       "-u" ) _s_content_show=2;shift;;
+      "-n" ) _s_content_show=0;shift;;
       "-C" ) _s_confirm=0;shift;;
       "-v" )
         _sf_echo "$(basename "$0") $EXPLORER_VERSION $EXPLORER_DATE"
