@@ -311,7 +311,7 @@ _sf_setview () { # {{{
   fi
 
   if [ $_s_content_show -eq 2 ];then
-    if [ $((_s_lines-_ext_row-_s_file_content_lines-1)) -ge 0 ];then
+    if [ $((_s_lines-_s_ext_row-_s_file_content_lines-1)) -gt 0 ];then
       _s_lines=$((_s_lines-_s_file_content_lines-1))
       _s_file_content=1
     else
