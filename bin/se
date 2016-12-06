@@ -66,16 +66,13 @@ _sf_initialize_user () { # {{{
 
   # New help
   _s_help="
-Usage: ex_explorer.sh [directory] [-aruvCHN] [-f <file>] [-s <sep>]
+Usage: ex_explorer.sh [directory] [-aruvC]
 
 Arguments:
    -a         Show hidden files/directories.
    -r         Show file content in the right.
    -u         Show file content under the list.
    -C         No confirmation at deletion.
-   -H         Header is shown at sentaku window.
-   -N         No nubmers are shown.
-   -v         Print version.
    -h         print this help and exit.
 "
 } # }}}
@@ -173,8 +170,6 @@ _sf_check_args () { # {{{
       "-r" ) _s_content_show=1;shift;;
       "-u" ) _s_content_show=2;shift;;
       "-C" ) _s_confirm=0;shift;;
-      "-H" ) _s_noheader=1;shift;;
-      "-N" ) _s_nonumber=1;shift;;
       "-v" )
         _sf_echo "$(basename "$0") $EXPLORER_VERSION $EXPLORER_DATE"
         return 0
