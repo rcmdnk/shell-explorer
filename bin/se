@@ -5,7 +5,7 @@
 # File explorer made with shell script.
 #
 EXPLORER_VERSION=v0.0.2
-EXPLORER_DATE="06/Dec/2016"
+EXPLORER_DATE="6/Dec/2016"
 #
 # }}}
 
@@ -326,27 +326,30 @@ _sf_setview () { # {{{
 } # }}}
 
 _sf_run_on_list () { # {{{
-  local curdir="$(pwd)"
+  local curdir="$(pwd)/"
   local full_list=()
   local i
   local only_file=1
-  if [ "$1" = "print" ] || [ "$1" = "show" ];then
+  if [[ "$1" =~ ^print ]] || [ "$1" = "show" ];then
     only_file=0
+    if [ "$1" = "print_nopath" ];then
+      curdir=""
+    fi
   fi
   if [ $_s_visual -ne -1 ];then
     for i in $(seq 0 $((_s_n-1)));do
       if [ ${_s_v_selected[$i]} -eq 1 ];then
-        if [ $only_file -eq 0 ] || [ -f "${curdir}/${_s_inputs[$i]}" ];then
-          full_list=("${full_list[@]}" "${curdir}/${_s_inputs[$i]}")
+        if [ $only_file -eq 0 ] || [ -f "${curdir}${_s_inputs[$i]}" ];then
+          full_list=("${full_list[@]}" "${curdir}${_s_inputs[$i]}")
         fi
       fi
     done
   else
-    if [ $only_file -eq 0 ] || [ -f "${curdir}/${_s_inputs[$_s_current_n]}" ];then
-      full_list=("${curdir}/${_s_inputs[$_s_current_n]}")
+    if [ $only_file -eq 0 ] || [ -f "${curdir}${_s_inputs[$_s_current_n]}" ];then
+      full_list=("${curdir}${_s_inputs[$_s_current_n]}")
     fi
   fi
-  if [ "$1" = "print" ];then
+  if [[ "$1" =~ ^print ]];then
     is_first=1
     for v in "${full_list[@]}";do
       if [ $is_first -eq 1 ];then
@@ -380,9 +383,7 @@ _sf_execute () { # {{{
 
 _sf_enter () { # {{{
   if [ -d "${_s_inputs[$_s_current_n]}" ];then
-    cd "${_s_inputs[$_s_current_n]}"
-    _sf_get_values
-    _sf_reset
+    _sf_c
   else
     _sf_l
   fi
@@ -396,6 +397,24 @@ _sf_c () { # {{{
   else
     _sf_echo "${_s_inputs[$_s_current_n]} is not a directory."
   fi
+} # }}}
+
+_sf_d () { # {{{
+  clear >/dev/tty
+  local orig_ifs=$IFS
+  IFS="$_s_s"
+  local full_list=($(_sf_run_on_list print_nopath))
+  IFS=$orig_ifs
+  local yes=0
+  if [ $_s_confirm -eq 1 ];then
+    _sf_yn "Delete following items?\n${full_list[*]}\n"
+    yes=$?
+  fi
+  if [ $yes -eq 0 ];then
+    rm -rf "${full_list[@]}"
+    _sf_rm_del
+  fi
+  _s_is_print=1
 } # }}}
 
 _sf_e () { # {{{
