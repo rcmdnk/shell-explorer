@@ -103,7 +103,7 @@ Enter|If an item under the cursor is a directory, move to it. Otherwise same as 
 
 Name|Description|Default
 :--:|:-----------|:------:
-SENTAKU_CONTENT_SHOW|0: No preview, 1: Preview in the right (-r), 2: Preview under the list (-u)|1
+SENTAKU_CONTENT_SHOW|0: No preview, 1: Preview in the right (-r), 2: Preview under the list (-u)|0
 SENTAKU_FILE_CONTENT_LINES|Number of lines of contents to be shown. (Only for `-u` mode)|10
 SENTAKU_EDITOR|Editor to be used by `e`.|`$EDITOR` (or `vi` if `$EDITOR` is not set)
 SENTAKU_VISUALAPP|Viewer to be used by `l`|`$VISUAL` (or `less` if `$VISUAL` is not set)
