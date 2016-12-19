@@ -4,7 +4,7 @@
 #
 # File explorer with preview, made with shell script.
 #
-EXPLORER_VERSION=v0.0.3
+EXPLORER_VERSION=v0.0.4
 EXPLORER_DATE="19/Dec/2016"
 #
 # }}}
@@ -45,8 +45,8 @@ fi
 _SENTAKU_SEPARATOR=$'\n'
 _SENTAKU_SHOWLAST=1
 _SENTAKU_FILE_CONTENT_LINES=${_SENTAKU_FILE_CONTENT_LINES:-10}
-_SENTAKU_CONTENT_SHOW=${_SENTAKU_CONTENT_SHOW:-0}
-_SENTAKU_SHOW_DIRECTORY_CONTENT=${_SENTAKU_SHOW_DIRECTORY_CONTENT:-0}
+_SENTAKU_CONTENT_SHOW=${_SENTAKU_CONTENT_SHOW:-1}
+_SENTAKU_SHOW_DIRECTORY_CONTENT=${_SENTAKU_SHOW_DIRECTORY_CONTENT:-1}
 _SENTAKU_EDITOR="$EDITOR"
 _SENTAKU_VISUALAPP="$VISUAL"
 _SENTAKU_CONFIRM=1
@@ -76,6 +76,7 @@ Arguments:
    -r         Show file content in the right.
    -u         Show file content under the list.
    -d         Show content of the directory.
+   -D         Do not show content of the directory.
    -n         No preview.
    -C         No confirmation at deletion.
    -h         print this help and exit.
@@ -177,6 +178,7 @@ _sf_check_args () { # {{{
       "-u" ) _s_content_show=2;shift;;
       "-n" ) _s_content_show=0;shift;;
       "-d" ) _s_show_directory_content=1;shift;;
+      "-D" ) _s_show_directory_content=0;shift;;
       "-C" ) _s_confirm=0;shift;;
       "-v" )
         _sf_echo "$(basename "$0") $EXPLORER_VERSION $EXPLORER_DATE"

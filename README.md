@@ -41,9 +41,9 @@ Give the list from stdin:
 
     $ echo file1 file2 file3|se
 
-Show the content of the file in the right:
+Show the content of the file in the right (give `-r` if `SENTAKU_CONTENT_SHOW` is set to other than 1.):
 
-    $ se -r
+    $ se
 
 ![shell-explorer-right](https://github.com/rcmdnk/shell-explorer/blob/images/shell-explorer-right.gif?raw=true)
 
@@ -52,6 +52,8 @@ Show the content of the file under the list:
     $ se -u
 
 ![shell-explorer-under](https://github.com/rcmdnk/shell-explorer/blob/images/shell-explorer-under.gif?raw=true)
+
+If you don't want to show preview, use `-n`.
 
 Help:
 
@@ -64,6 +66,7 @@ Help:
        -r         Show file content in the right.
        -u         Show file content under the list.
        -d         Show contents of the directory.
+       -D         Do not show contents of the directory.
        -n         No preview.
        -C         No confirmation at deletion.
        -h         print this help and exit.
@@ -105,8 +108,8 @@ Enter|If an item under the cursor is a directory, move to it. Otherwise same as 
 
 Name|Description|Default
 :--:|:-----------|:------:
-SENTAKU_CONTENT_SHOW|0: No preview, 1: Preview in the right (-r), 2: Preview under the list (-u)|0
-SENTAKU_SHOW_DIRECTORY_CONTENT|0: No preview for a directory. 1: Show directory content as preview.|0
+SENTAKU_CONTENT_SHOW|0: No preview, 1: Preview in the right (-r), 2: Preview under the list (-u)|1
+SENTAKU_SHOW_DIRECTORY_CONTENT|0: No preview for a directory. 1: Show directory content as preview.|1
 SENTAKU_FILE_CONTENT_LINES|Number of lines of content to be shown. (Only for `-u` mode)|10
 SENTAKU_EDITOR|Editor to be used by `e`.|`$EDITOR` (or `vi` if `$EDITOR` is not set)
 SENTAKU_VISUALAPP|Viewer to be used by `l`|`$VISUAL` (or `less` if `$VISUAL` is not set)
