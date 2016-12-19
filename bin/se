@@ -4,8 +4,8 @@
 #
 # File explorer with preview, made with shell script.
 #
-EXPLORER_VERSION=v0.0.2
-EXPLORER_DATE="6/Dec/2016"
+EXPLORER_VERSION=v0.0.3
+EXPLORER_DATE="19/Dec/2016"
 #
 # }}}
 
@@ -46,6 +46,7 @@ _SENTAKU_SEPARATOR=$'\n'
 _SENTAKU_SHOWLAST=1
 _SENTAKU_FILE_CONTENT_LINES=${_SENTAKU_FILE_CONTENT_LINES:-10}
 _SENTAKU_CONTENT_SHOW=${_SENTAKU_CONTENT_SHOW:-0}
+_SENTAKU_SHOW_DIRECTORY_CONTENT=${_SENTAKU_SHOW_DIRECTORY_CONTENT:-0}
 _SENTAKU_EDITOR="$EDITOR"
 _SENTAKU_VISUALAPP="$VISUAL"
 _SENTAKU_CONFIRM=1
@@ -56,6 +57,7 @@ _sf_initialize_user () { # {{{
   _s_s="${_SENTAKU_SEPARATOR}"
   _s_file_content_lines=${SENTAKU_FILE_CONTENT_LINES:-$_SENTAKU_FILE_CONTENT_LINES}
   _s_content_show=${SENTAKU_CONTENT_SHOW:-$_SENTAKU_CONTENT_SHOW}
+  _s_show_directory_content=${SENTAKU_SHOW_DIRECTORY_CONTENT:-$_SENTAKU_SHOW_DIRECTORY_CONTENT}
   _s_editor="${SENTAKU_EDITOR:-$_SENTAKU_EDITOR}"
   _s_editor="${_s_editor:-vi}"
   _s_visualapp="${SENTAKU_VISUALAPP:-$_SENTAKU_VISUALAPP}"
@@ -73,6 +75,7 @@ Arguments:
    -a         Show hidden files/directories.
    -r         Show file content in the right.
    -u         Show file content under the list.
+   -d         Show content of the directory.
    -n         No preview.
    -C         No confirmation at deletion.
    -h         print this help and exit.
@@ -82,6 +85,7 @@ Arguments:
 _sf_finalize_user () { # {{{
   unset _s_file_content_lines
   unset _s_content_show
+  unset _s_show_directory_content
   unset _s_editor
   unset _s_visualapp
   unset _s_confirm
@@ -172,6 +176,7 @@ _sf_check_args () { # {{{
       "-r" ) _s_content_show=1;shift;;
       "-u" ) _s_content_show=2;shift;;
       "-n" ) _s_content_show=0;shift;;
+      "-d" ) _s_show_directory_content=1;shift;;
       "-C" ) _s_confirm=0;shift;;
       "-v" )
         _sf_echo "$(basename "$0") $EXPLORER_VERSION $EXPLORER_DATE"
@@ -226,18 +231,19 @@ _sf_file_content () { # {{{
   fi
 
   file_type=$(file "${_s_inputs[$_s_current_n]}"|cut -d":" -f2-)
-  if ! echo "$file_type"|grep -q text || echo "$file_type"|grep -q "very long lines";then
-    if [ $_s_content_show -eq 1 ];then
-      file_type="|${file_type}"
-    fi
-    if [ $_s_content_show -eq 1 ];then
-      start_line=$((_s_current_n-_s_n_offset+_s_ext_row))
-    fi
-    tput cup "$start_line" "$start_col" >/dev/tty
-    printf "$(_sf_cut_word "$file_type" "$n_cols")"
-  else
+  if ( echo "$file_type"|grep -q text && ! echo "$file_type"|grep -q "very long lines" ) || ( [ $_s_show_directory_content -eq 1 ] && echo "$file_type"|grep -q directory);then
     i=$start_line
-    while read line;do
+    local content
+    if echo "$file_type"|grep -q directory;then
+      if [ $_s_a -eq 1 ];then
+        content="$(ls -a "${_s_inputs[$_s_current_n]}")"
+      else
+        content="$(ls "${_s_inputs[$_s_current_n]}")"
+      fi
+    else
+      content="$(cat "${_s_inputs[$_s_current_n]}")"
+    fi
+    while read -r line;do
       if [ $_s_content_show -eq 1 ];then
         line="|$line"
       fi
@@ -248,20 +254,29 @@ _sf_file_content () { # {{{
           line="${line: 0: $n_cols}"
         fi
       fi
-      tput cup "$i" $start_col >/dev/tty
+      tput cup "$i" "$start_col" >/dev/tty
       printf "%s" "$line"
       ((i++))
       if [ $i -gt $end_line ];then
         break
       fi
-    done < ${_s_inputs[$_s_current_n]}
+    done < <(echo "$content")
     if [ $_s_content_show -eq 1 ];then
       while [ $i -lt $end_line ];do
-        tput cup "$i" $start_col >/dev/tty
+        tput cup "$i" "$start_col" >/dev/tty
         printf "|"
         ((i++))
       done
     fi
+  else
+    if [ $_s_content_show -eq 1 ];then
+      file_type="|${file_type}"
+    fi
+    if [ $_s_content_show -eq 1 ];then
+      start_line=$((_s_current_n-_s_n_offset+_s_ext_row))
+    fi
+    tput cup "$start_line" "$start_col" >/dev/tty
+    printf "$(_sf_cut_word "$file_type" "$n_cols")"
   fi
 } # }}}
 

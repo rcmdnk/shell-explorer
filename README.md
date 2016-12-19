@@ -63,6 +63,8 @@ Help:
        -a         Show hidden files/directories.
        -r         Show file content in the right.
        -u         Show file content under the list.
+       -d         Show contents of the directory.
+       -n         No preview.
        -C         No confirmation at deletion.
        -h         print this help and exit.
 
@@ -104,7 +106,8 @@ Enter|If an item under the cursor is a directory, move to it. Otherwise same as 
 Name|Description|Default
 :--:|:-----------|:------:
 SENTAKU_CONTENT_SHOW|0: No preview, 1: Preview in the right (-r), 2: Preview under the list (-u)|0
-SENTAKU_FILE_CONTENT_LINES|Number of lines of contents to be shown. (Only for `-u` mode)|10
+SENTAKU_SHOW_DIRECTORY_CONTENT|0: No preview for a directory. 1: Show directory content as preview.|0
+SENTAKU_FILE_CONTENT_LINES|Number of lines of content to be shown. (Only for `-u` mode)|10
 SENTAKU_EDITOR|Editor to be used by `e`.|`$EDITOR` (or `vi` if `$EDITOR` is not set)
 SENTAKU_VISUALAPP|Viewer to be used by `l`|`$VISUAL` (or `less` if `$VISUAL` is not set)
 SENTAKU_CONFIRM|If 1, `se` will ask a confirmation at deletion.|1
