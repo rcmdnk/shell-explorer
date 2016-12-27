@@ -383,7 +383,7 @@ _sf_run_on_list () { # {{{
     _sf_echo "$(pwd)\n$(ls -dl "${full_list[@]}")"
   else
     if [ ${#full_list} -eq 0 ];then
-      _sf_echo "No directory is selected."
+      _sf_echo "No file is selected."
       return
     fi
     clear >/dev/tty
