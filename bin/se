@@ -321,6 +321,7 @@ _sf_setview () { # {{{
     _s_ext_row=1
   else
     _sf_set_header
+    _s_header="$_s_header\\n$_s_search"
     _s_header="$(printf "%b\n\n" "$_s_header"|\
                  sed -e :loop -e 'N; $!b loop'  -e 's/[[:space:]\n]*$//')\
                \n${_s_search}"
