@@ -4,8 +4,8 @@
 #
 # File explorer with preview, made with shell script.
 #
-EXPLORER_VERSION=v0.0.4
-EXPLORER_DATE="19/Dec/2016"
+EXPLORER_VERSION=v0.0.5
+EXPLORER_DATE="20/Sep/2018"
 #
 # }}}
 
