@@ -225,7 +225,7 @@ _sf_file_content () { # {{{
 
   if [ $_s_content_show -eq 2 ];then
     tput cup "$_s_lines" 0 >/dev/tty
-    if [ $n_cols -ge 20 ];then
+    if [ "$n_cols" -ge 20 ];then
       printf "====File content===="
     else
       printf "=="
@@ -233,61 +233,66 @@ _sf_file_content () { # {{{
   fi
 
   file_type=$(file "${_s_inputs[$_s_current_n]}"|cut -d":" -f2-)
-  if ( echo "$file_type"|grep -q text && ! echo "$file_type"|grep -q "very long lines" ) || ( [ $_s_show_directory_content -eq 1 ] && echo "$file_type"|grep -q directory);then
-    i=$start_line
-    local content
-    if echo "$file_type"|grep -q directory;then
-      if [ $_s_a -eq 1 ];then
-        content="$(ls -a "${_s_inputs[$_s_current_n]}")"
-      else
-        content="$(ls "${_s_inputs[$_s_current_n]}")"
-      fi
+  local content
+  if [[ "$file_type" = *text* ]];then
+    content="$(cat "${_s_inputs[$_s_current_n]}")"
+  elif [[ "$file_type" = *directory* && $_s_show_directory_content -eq 1 ]];then
+    if [ $_s_a -eq 1 ];then
+      content="$(ls -a "${_s_inputs[$_s_current_n]}")"
     else
-      content="$(cat "${_s_inputs[$_s_current_n]}")"
-    fi
-    while read -r line;do
-      if [ $_s_content_show -eq 1 ];then
-        line="|$line"
-      fi
-      if [ "${#line}" -gt "$n_cols" ];then
-        if [ "x$ZSH_VERSION" != "x" ];then
-          line="${line[0,$((n_cols-1))]}"
-        else
-          line="${line: 0: $n_cols}"
-        fi
-      fi
-      tput cup "$i" "$start_col" >/dev/tty
-      printf "%s" "$line"
-      ((i++))
-      if [ $i -gt $end_line ];then
-        break
-      fi
-    done < <(echo "$content")
-    if [ $_s_content_show -eq 1 ];then
-      while [ $i -lt $end_line ];do
-        tput cup "$i" "$start_col" >/dev/tty
-        printf "|"
-        ((i++))
-      done
+      content="$(ls "${_s_inputs[$_s_current_n]}")"
     fi
   else
     if [ $_s_content_show -eq 1 ];then
-      file_type="|${file_type}"
+      content=""
+      i=0
+      local current_line=$((_s_current_n-_s_n_offset+_s_ext_row))
+      while [[ $i -lt $current_line ]];do
+        content="$content\\n"
+        ((i++))
+      done
+      content="$(printf "$content$file_type")"
+    else
+      content="$file_type"
     fi
+  fi
+  local line
+  i=$start_line
+  while IFS= read -r line;do
     if [ $_s_content_show -eq 1 ];then
-      start_line=$((_s_current_n-_s_n_offset+_s_ext_row))
+      line="|$line"
     fi
-    tput cup "$start_line" "$start_col" >/dev/tty
-    printf "$(_sf_cut_word "$file_type" "$n_cols")"
+    if [ "${#line}" -gt "$n_cols" ];then
+      if [ "x$ZSH_VERSION" != "x" ];then
+        line="${line[0,$((n_cols-1))]}"
+      else
+        line="${line: 0: $n_cols}"
+      fi
+    fi
+    tput cup "$i" "$start_col" >/dev/tty
+    printf "%s" "$line"
+    ((i++))
+    if [ $i -gt $end_line ];then
+      break
+    fi
+  done < <(echo "$content")
+  if [ $_s_content_show -eq 1 ];then
+    while [ $i -lt $end_line ];do
+      tput cup "$i" "$start_col" >/dev/tty
+      printf "|"
+      ((i++))
+    done
   fi
 } # }}}
 
 _sf_set_header () { # {{{
-  _s_header="\e[43;30m$(_sf_cut_word $(pwd) $((_s_cols-1)) 1)\e[0m "
+  _s_header="$PWD"
+  _sf_cut_word _s_header $((_s_cols-1)) 1
+  _s_header="\\e[43;30m$_s_header\\e[0m "
   if [ "$_s_noheader" = 1 ];then
     return
   fi
-  if [ $_s_keymode -eq 0 ];then
+  if [ "$_s_keymode" -eq 0 ];then
     if [ "$_s_cols" -ge 64 ];then
       _s_header="$_s_header
   vimike updown, e.g)j:down, k:up, gg/G,
@@ -322,13 +327,15 @@ _sf_setview () { # {{{
   else
     _sf_set_header
     _s_header="$_s_header\\n$_s_search"
-    _s_header="$(printf "%b\n\n" "$_s_header"|\
+    _s_header="$(printf "%b\\n\\n" "$_s_header"|\
                  sed -e :loop -e 'N; $!b loop'  -e 's/[[:space:]\n]*$//')\
-               \n${_s_search}"
-    if [ "$(printf "%b\n" "$_s_header"|wc -l)" -gt "$((_s_lines-_s_min_show))" ];then
-      _s_header="\e[43;30m$(_sf_cut_word $(pwd) $_s_cols 1)\e[0m "
+               \\n${_s_search}"
+    if [ "$(printf "%b\\n" "$_s_header"|wc -l)" -gt "$((_s_lines-_s_min_show))" ];then
+      _s_header="$PWD"
+      _sf_cut_word _s_header $((_s_cols-1)) 1
+      _s_header="\\e[43;30m$_s_header\\e[0m "
     fi
-    _s_ext_row=$(printf "%b\n" "$_s_header"|wc -l)
+    _s_ext_row=$(printf "%b\\n" "$_s_header"|wc -l)
   fi
 
   if [ $_s_content_show -eq 2 ];then
@@ -357,9 +364,9 @@ _sf_run_on_list () { # {{{
       curdir=""
     fi
   fi
-  if [ $_s_visual -ne -1 ];then
+  if [ "$_s_visual" -ne -1 ];then
     for i in $(seq 0 $((_s_n-1)));do
-      if [ ${_s_v_selected[$i]} -eq 1 ];then
+      if [ "${_s_v_selected[$i]}" -eq 1 ];then
         if [ $only_file -eq 0 ] || [ -f "${curdir}${_s_inputs[$i]}" ];then
           full_list=("${full_list[@]}" "${curdir}${_s_inputs[$i]}")
         fi
@@ -381,7 +388,7 @@ _sf_run_on_list () { # {{{
       fi
     done
   elif [ "$1" = "show" ];then
-    _sf_echo "$(pwd)\n$(ls -dl "${full_list[@]}")"
+    _sf_echo "$PWD\\n$(ls -dl "${full_list[@]}")"
   else
     if [ ${#full_list} -eq 0 ];then
       _sf_echo "No file is selected."
@@ -428,7 +435,7 @@ _sf_d () { # {{{
   IFS=$orig_ifs
   local yes=0
   if [ $_s_confirm -eq 1 ];then
-    _sf_yn "Delete following items?\n${full_list[*]}\n"
+    _sf_yn "Delete following items?\\n${full_list[*]}\\n"
     yes=$?
   fi
   if [ $yes -eq 0 ];then
@@ -455,7 +462,7 @@ _sf_s () { # {{{
 } # }}}
 
 if [ -p /dev/stdin ];then
-  echo $(cat -) | _sf_main "$@"
+  cat - | _sf_main "$@"
 else
   _sf_main "$@"
 fi
