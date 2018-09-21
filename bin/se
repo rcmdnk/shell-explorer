@@ -162,15 +162,6 @@ _sf_print_current_line () { # print current line {{{
 _sf_check_args () { # {{{
   # Get arguments
   _s_continue=0
-  if [ "$1" != "" ] && [ "$(echo $1 |cut -c 1)" != "-" ];then
-    _s_start_dir="$1"
-    shift
-    if [ ! -d "$_s_start_dir" ];then
-      _sf_echo "$_s_start_dir is not a directory."
-      return
-    fi
-    cd "${_s_start_dir}"
-  fi
   while [ $# -gt 0 ];do
     case $1 in
       "-a" ) _s_a=1;shift;;
@@ -188,12 +179,23 @@ _sf_check_args () { # {{{
         _sf_echo "$_s_help"
         return 0
         ;;
-      * )
+      -* )
         _sf_echo "$_s_help"
         return 1
         ;;
+      * )
+        _s_start_dir="$1"
+        shift
+        ;;
     esac
   done
+  if [[ -n "$_s_start_dir" ]];then
+    if [[ ! -d "$_s_start_dir" ]];then
+      _sf_echo "$_s_start_dir is not a directory."
+      return
+    fi
+    cd "${_s_start_dir}"
+  fi
   _s_continue=1
   return 0
 } # }}}
