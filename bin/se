@@ -4,8 +4,8 @@
 #
 # File explorer with preview, made with shell script.
 #
-EXPLORER_VERSION=v0.0.5
-EXPLORER_DATE="20/Sep/2018"
+EXPLORER_VERSION=v0.0.6
+EXPLORER_DATE="19/Dec/2018"
 #
 # }}}
 
@@ -332,12 +332,12 @@ _sf_setview () { # {{{
     _s_header="$(printf "%b\\n\\n" "$_s_header"|\
                  sed -e :loop -e 'N; $!b loop'  -e 's/[[:space:]\n]*$//')\
                \\n${_s_search}"
-    if [ "$(printf "%b\\n" "$_s_header"|wc -l)" -gt "$((_s_lines-_s_min_show))" ];then
+    if [ "$(printf "%b\\n" "$_s_header"|grep -c ^)" -gt "$((_s_lines-_s_min_show))" ];then
       _s_header="$PWD"
       _sf_cut_word _s_header $((_s_cols-1)) 1
       _s_header="\\e[43;30m$_s_header\\e[0m "
     fi
-    _s_ext_row=$(printf "%b\\n" "$_s_header"|wc -l)
+    _s_ext_row=$(printf "%b\\n" "$_s_header"|grep -c ^)
   fi
 
   if [ $_s_content_show -eq 2 ];then
